@@ -42,31 +42,47 @@ app.post("/uploadPhoto", upload.single("file"), async (req, res) => {
     const id = req.body.id;
     const friendId = req.body.friendId;
     const password = req.body.password;
-    const user = new userModel({
-      id,
+    const user = {
       friendId,
       password,
       photo,
-    });
+    };
 
-    await user.save();
+    let checkIdPresentOrNot = await UserSignUp.findOne({ id });
 
-    res.status(200).json({ message: "Upload successful", success: true });
+    if (!checkIdPresentOrNot) {
+      res
+        .status(404)
+        .json({ message: "Your id is not correct", success: false });
+    }
+
+    if (checkIdPresentOrNot) {
+      // Update the friends array correctly
+      checkIdPresentOrNot.friends.push(user);
+      await UserSignUp.updateOne(
+        { id: id },
+        { friends: checkIdPresentOrNot.friends }
+      );
+
+      res.status(200).json({ message: "Friend Created", success: true });
+    }
   } catch (error) {
     console.log(error);
     res
       .status(500)
-      .json({ message: "Some error occured! Try again", success: false });
+      .json({ message: "Some error occurred! Try again", success: false });
   }
 });
 
 app.post("/signUp", async (req, res) => {
   try {
     const name = req.body.name;
+    const id = req.body.id;
     const email = req.body.email;
     const password = req.body.password;
     const newUser = new UserSignUp({
       name,
+      id,
       email,
       password,
     });
@@ -101,13 +117,11 @@ app.post("/signIn", async (req, res) => {
         expiresIn: "1d",
       });
 
-      return res
-        .status(200)
-        .json({
-          message: "Welcome back" + existingUser.name,
-          success: true,
-          token,
-        });
+      return res.status(200).json({
+        message: "Welcome back" + existingUser.name,
+        success: true,
+        token,
+      });
     }
     return res
       .status(400)
@@ -115,6 +129,16 @@ app.post("/signIn", async (req, res) => {
   } catch (error) {
     console.error("Error occured", error);
     res.status(500).json({ message: "Internal Server Error" });
+  }
+});
+
+app.get("/fetchUsers", async (req, res) => {
+  try {
+    // Fetch all users from the database
+    const users = await UserSignUp.find();
+    res.json({ message: "successfully fetched", success: true, users });
+  } catch (error) {
+    res.status(500).json({ error: "Internal Server Error" });
   }
 });
 

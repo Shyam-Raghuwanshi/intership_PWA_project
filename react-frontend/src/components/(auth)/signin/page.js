@@ -38,6 +38,7 @@ function SignIn({ setUser }) {
     const json = await response.json();
     if (json.success) {
       navigate("/");
+      localStorage.setItem("token", json.token)
       NotificationManager.success(json.message);
       setUser(true);
     } else {

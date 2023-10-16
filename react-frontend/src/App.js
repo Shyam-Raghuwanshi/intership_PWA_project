@@ -9,7 +9,7 @@ import "./components/css/style.css";
 import ResetPassword from "./components/(auth)/reset-password/page";
 import "react-notifications/lib/notifications.css";
 import Home from "./components/Home";
-
+import ViewFriends from "./components/viewfriends"
 import {
   NotificationContainer,
   NotificationManager,
@@ -23,7 +23,7 @@ export const metadata = {
 function App() {
   // const navigate = useNavigate();
   const token = localStorage.getItem("token");
-  const [user, setUser] = useState(false);
+  const [user, setUser] = useState();
 
   function isTokenExpired(token) {
     if (!token || token == null) {
@@ -32,18 +32,20 @@ function App() {
     try {
       const decodedToken = JSON.parse(atob(token.split(".")[1]));
       const expirationTime = decodedToken.exp;
-      console.log(Date.now() >= expirationTime * 1000);
-      setUser(Date.now() >= expirationTime * 1000);
+      if (Date.now() >= expirationTime * 1000) {
+        setUser(false);
+      } else {
+        setUser(true);
+      }
     } catch (error) {
       setUser(false);
       console.error("Error decoding or checking token:", error);
-      return true;
     }
   }
 
   function logout() {
     localStorage.removeItem("token");
-    setUser(true);
+    setUser(false);
     NotificationManager.success("You are logedout");
   }
 
@@ -58,11 +60,12 @@ function App() {
       >
         <div className="flex flex-col min-h-screen overflow-hidden supports-[overflow:clip]:overflow-clip">
           <Router>
-            <Header user={user} logout={logout} />
+            <Header user={user} setUser={setUser} logout={logout} />
             <Routes>
-              <Route path="/" element={user? <Form /> : <Home/>} />
+              <Route path="/" element={<Form user={user} />} />
               <Route path="/signup" element={<SignUp setUser={setUser} />} />
               <Route path="/signin" element={<SignIn setUser={setUser} />} />
+              <Route path="/viewfriends" element={<ViewFriends />} />
               <Route path="/reset-password" element={<ResetPassword />} />
             </Routes>
             <Footer />

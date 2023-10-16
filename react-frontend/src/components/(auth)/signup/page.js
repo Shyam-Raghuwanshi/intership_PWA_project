@@ -12,6 +12,7 @@ export const metadata = {
 export default function SignUp({ setUser }) {
   const navigate = useNavigate();
   const [name, setName] = useState("");
+  const [id, setId] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -23,6 +24,9 @@ export default function SignUp({ setUser }) {
   const handleEmailChange = (e) => {
     setEmail(e.target.value);
   };
+  const handleId = (e) => {
+    setId(e.target.value);
+  };
 
   const handlePasswordChange = (e) => {
     setPassword(e.target.value);
@@ -33,6 +37,7 @@ export default function SignUp({ setUser }) {
     e.preventDefault();
     const signupData = {
       name,
+      id,
       email,
       password,
     };
@@ -47,9 +52,10 @@ export default function SignUp({ setUser }) {
       })
       .catch((error) => {
         setUser(false);
-        NotificationManager.error("Email is already exit");
+        NotificationManager.error("Email or Id should be unique.");
       });
     setName("");
+    setId("")
     setEmail("");
     setPassword("");
   };
@@ -109,6 +115,25 @@ export default function SignUp({ setUser }) {
                     placeholder="Enter your name"
                     value={name}
                     onChange={handleNameChange}
+                    required
+                  />
+                </div>
+              </div>
+              <div className="flex flex-wrap -mx-3 mb-4">
+                <div className="w-full px-3">
+                  <label
+                    className="block text-gray-800 text-sm font-medium mb-1"
+                    htmlFor="id"
+                  >
+                    ID <span className="text-red-600">*</span>
+                  </label>
+                  <input
+                    id="id"
+                    type="text"
+                    className="form-input w-full text-gray-800"
+                    placeholder="Make a Id"
+                    value={id}
+                    onChange={handleId}
                     required
                   />
                 </div>
