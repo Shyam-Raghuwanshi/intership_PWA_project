@@ -7,21 +7,29 @@ const cors = require("cors");
 const jwt = require("jsonwebtoken");
 const app = express();
 const connectToDb = require("./middleware/db");
-const PORT = process.env.PORT || 8000;
-const userModel = require("./models/user.js");
+const PORT = 8000;
+const userModel = require("./models/user.js")
 const UserSignUp = require("./models/userSignup");
+const chatRoutes = require("./chatRoutes")
+// const chatRoutes = require("./chatRoutes");
 connectToDb();
 app.use(cors());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, "..", "react-frontend/")));
-
 // Multer configuration
 let filePath = "";
 const secretKey = "shyam124";
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    const userDirectoryPath = path.join(__dirname, "/uploads", req.body.id);
+    const userDirectoryPath = path.join(
+      __dirname,
+      "..",
+      "react-frontend/uploads",
+      req.body.id,
+      "/",
+      req.body.friendId
+    );
     fs.mkdirSync(userDirectoryPath, { recursive: true });
     return cb(null, userDirectoryPath);
   },
@@ -48,24 +56,55 @@ app.post("/uploadPhoto", upload.single("file"), async (req, res) => {
       photo,
     };
 
-    let checkIdPresentOrNot = await UserSignUp.findOne({ id });
-
+    const checkIdPresentOrNot = await UserSignUp.findOne({ id, password });
     if (!checkIdPresentOrNot) {
       res
         .status(404)
-        .json({ message: "Your id is not correct", success: false });
+        .json({ message: "Your id or password is incorrect", success: false });
+      return;
     }
 
-    if (checkIdPresentOrNot) {
-      // Update the friends array correctly
+    const isFriendIdPresent = checkIdPresentOrNot?.friends.some(
+      (friend) => friend.friendId == friendId
+    );
+    if (checkIdPresentOrNot && !isFriendIdPresent) {
       checkIdPresentOrNot.friends.push(user);
       await UserSignUp.updateOne(
         { id: id },
         { friends: checkIdPresentOrNot.friends }
       );
-
       res.status(200).json({ message: "Friend Created", success: true });
+    } else {
+      res.status(200).json({ message: "Friend exit", success: false });
     }
+  } catch (error) {
+    console.log(error);
+    res
+      .status(500)
+      .json({ message: "Some error occurred! Try again", success: false });
+  }
+});
+
+app.use("/chat", chatRoutes);
+
+app.get("/chatRoutes/:userId/:friendId", async (req, res) => {
+    res.send(req.params)
+});
+
+// Delete friend api from user friend list
+app.delete("/deleteFriend", async (req, res) => {
+  try {
+    const { id, friendId } = req.body;
+    const getUserObj = await UserSignUp.findOne({ id });
+    const updatedFriends = getUserObj.friends.filter(
+      (friend) => friend.friendId !== friendId
+    );
+
+    await UserSignUp.updateOne({ id: id }, { friends: updatedFriends });
+
+    res
+      .status(200)
+      .json({ message: "Friend deleted successfully", success: true });
   } catch (error) {
     console.log(error);
     res
@@ -86,8 +125,17 @@ app.post("/signUp", async (req, res) => {
       email,
       password,
     });
+
+    const payload = {
+      name,
+      id,
+      email,
+      password,
+      friends: [0],
+    };
+
     await newUser.save();
-    const token = jwt.sign(newUser.toObject(), secretKey, {
+    const token = jwt.sign(payload, secretKey, {
       expiresIn: "1d",
     });
     res
@@ -108,12 +156,7 @@ app.post("/signIn", async (req, res) => {
     // Check if user already exists
     const existingUser = await UserSignUp.findOne({ email });
     if (existingUser.email == email && existingUser.password == password) {
-      const payload = {
-        name: existingUser.name,
-        password: existingUser.password,
-        email: existingUser.email,
-      };
-      const token = jwt.sign(payload, secretKey, {
+      const token = jwt.sign(existingUser.toObject(), secretKey, {
         expiresIn: "1d",
       });
 

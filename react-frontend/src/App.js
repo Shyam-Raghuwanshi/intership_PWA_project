@@ -8,8 +8,8 @@ import Header from "./components/ui/header";
 import "./components/css/style.css";
 import ResetPassword from "./components/(auth)/reset-password/page";
 import "react-notifications/lib/notifications.css";
-import Home from "./components/Home";
-import ViewFriends from "./components/viewfriends"
+import ViewFriends from "./components/viewfriends";
+
 import {
   NotificationContainer,
   NotificationManager,
@@ -21,13 +21,16 @@ export const metadata = {
 };
 
 function App() {
-  // const navigate = useNavigate();
   const token = localStorage.getItem("token");
   const [user, setUser] = useState();
+  const [friendsCount, setFriendsCount] = useState(0);
+  const [id, setId] = useState("");
+  const [userName, setUserName] = useState(null);
 
   function isTokenExpired(token) {
-    if (!token || token == null) {
+    if (!token || token == null || token == undefined) {
       setUser(false);
+      return;
     }
     try {
       const decodedToken = JSON.parse(atob(token.split(".")[1]));
@@ -35,7 +38,10 @@ function App() {
       if (Date.now() >= expirationTime * 1000) {
         setUser(false);
       } else {
+        setId(decodedToken.id);
+        setUserName(decodedToken.name);
         setUser(true);
+        setFriendsCount(decodedToken.friends.length);
       }
     } catch (error) {
       setUser(false);
@@ -45,6 +51,9 @@ function App() {
 
   function logout() {
     localStorage.removeItem("token");
+    setId(null);
+    setFriendsCount(0);
+    setUserName(null);
     setUser(false);
     NotificationManager.success("You are logedout");
   }
@@ -54,26 +63,65 @@ function App() {
   }, []);
 
   return (
-    <html lang="en">
-      <body
-        className={` font-inter antialiased bg-white text-gray-900 tracking-tight`}
-      >
-        <div className="flex flex-col min-h-screen overflow-hidden supports-[overflow:clip]:overflow-clip">
-          <Router>
-            <Header user={user} setUser={setUser} logout={logout} />
-            <Routes>
-              <Route path="/" element={<Form user={user} />} />
-              <Route path="/signup" element={<SignUp setUser={setUser} />} />
-              <Route path="/signin" element={<SignIn setUser={setUser} />} />
-              <Route path="/viewfriends" element={<ViewFriends />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
-            </Routes>
-            <Footer />
-          </Router>
-          <NotificationContainer />
-        </div>
-      </body>
-    </html>
+    // <html lang="en">
+    //   <body
+    //     className={` font-inter antialiased bg-white text-gray-900 tracking-tight`}
+    //   >
+    //     <div className="flex flex-col min-h-screen overflow-hidden supports-[overflow:clip]:overflow-clip">
+    <Router>
+      <Header
+        user={user}
+        setUser={setUser}
+        logout={logout}
+        friendsCount={friendsCount}
+        id={id}
+        userName={userName}
+      />
+      <Routes>
+        <Route
+          path="/"
+          element={<Form user={user} isTokenExpired={isTokenExpired} />}
+        />
+        <Route
+          path="/signup"
+          element={<SignUp user={user} setUser={setUser} isTokenExpired={isTokenExpired}/>}
+        />
+        <Route
+          path="/signin"
+          element={<SignIn user={user} setUser={setUser} isTokenExpired={isTokenExpired}/>}
+        />
+        <Route
+          path="/viewfriends"
+          element={
+            <ViewFriends
+              user={user}
+              setFriendsCount={setFriendsCount}
+              setId={setId}
+              id={id}
+              setUserName={setUserName}
+            />
+          }
+        />
+        <Route
+          path="/chat"
+          element={
+            <ViewFriends
+              user={user}
+              setFriendsCount={setFriendsCount}
+              setId={setId}
+              id={id}
+              setUserName={setUserName}
+            />
+          }
+        />
+        <Route path="/reset-password" element={<ResetPassword />} />
+      </Routes>
+      <Footer />
+      <NotificationContainer />
+    </Router>
+    //     </div>
+    //   </body>
+    // </html>
   );
 }
 

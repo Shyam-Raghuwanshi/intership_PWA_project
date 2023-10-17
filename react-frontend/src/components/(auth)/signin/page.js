@@ -1,7 +1,5 @@
-import React, { useState } from "react";
-import {
-  NotificationManager,
-} from "react-notifications";
+import React, { useState, useEffect } from "react";
+import { NotificationManager } from "react-notifications";
 import { useNavigate } from "react-router-dom";
 import "react-notifications/lib/notifications.css";
 export const metadata = {
@@ -9,7 +7,7 @@ export const metadata = {
   description: "Page description",
 };
 
-function SignIn({ setUser }) {
+function SignIn({ setUser, user, isTokenExpired }) {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -38,14 +36,21 @@ function SignIn({ setUser }) {
     const json = await response.json();
     if (json.success) {
       navigate("/");
-      localStorage.setItem("token", json.token)
+      localStorage.setItem("token", json.token);
+      const token = localStorage.getItem("token")
       NotificationManager.success(json.message);
+      isTokenExpired(token)
       setUser(true);
     } else {
       NotificationManager.error(json.message);
       setUser(false);
     }
   };
+  useEffect(() => {
+    if (user) {
+      navigate("/");
+    }
+  }, [user]);
 
   return (
     <section className="bg-gradient-to-b from-gray-100 to-white">

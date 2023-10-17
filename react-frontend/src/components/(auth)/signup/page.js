@@ -1,7 +1,5 @@
-import React, { useState } from "react";
-import {
-  NotificationManager,
-} from "react-notifications";
+import React, { useEffect, useState } from "react";
+import { NotificationManager } from "react-notifications";
 import { useNavigate } from "react-router-dom";
 import "react-notifications/lib/notifications.css";
 export const metadata = {
@@ -9,7 +7,7 @@ export const metadata = {
   description: "Page description",
 };
 
-export default function SignUp({ setUser }) {
+export default function SignUp({ user, setUser, isTokenExpired }) {
   const navigate = useNavigate();
   const [name, setName] = useState("");
   const [id, setId] = useState("");
@@ -33,7 +31,7 @@ export default function SignUp({ setUser }) {
   };
 
   // Handle form submission
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const signupData = {
       name,
@@ -42,55 +40,52 @@ export default function SignUp({ setUser }) {
       password,
     };
 
-    const apiUrl = "http://localhost:8000/signUp";
-
-    fetchData(apiUrl, signupData)
-      .then((result) => {
-        setUser(true);
-        navigate("/");
-        NotificationManager.success(`Welcome ${name}`);
-      })
-      .catch((error) => {
-        setUser(false);
-        NotificationManager.error("Email or Id should be unique.");
-      });
-    setName("");
-    setId("")
-    setEmail("");
-    setPassword("");
-  };
-  async function fetchData(url, data) {
     try {
-      const response = await fetch(url, {
+      const response = await fetch("http://localhost:8000/signUp", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          // You might need to include additional headers, such as authorization headers
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify(signupData),
       });
-
-      if (!response.ok) {
-        // Handle non-OK responses
-        throw new Error(`HTTP error! Status: ${response.status}`);
-      }
-
       // Parse the JSON response
       const result = await response.json();
-      return result;
+      if (result.success) {
+        setUser(true);
+        localStorage.setItem("token", result.token);
+        const token = localStorage.getItem("token")
+        navigate("/");
+        NotificationManager.success(`Welcome ${name}`);
+        isTokenExpired(token)
+        setName("");
+        setId("");
+        setEmail("");
+        setPassword("");
+      } else {
+        setUser(false);
+        NotificationManager.error("Email or Id should be unique.");
+        NotificationManager.error(result.message);
+      }
     } catch (error) {
       // Handle network errors or errors during the fetch
+      setUser(false);
       console.error("Error during fetch:", error.message);
       throw error;
     }
-  }
+  };
+
+  useEffect(() => {
+    if (user) {
+      navigate("/");
+    }
+  }, [user]);
 
   // Call the fetch function with the data
 
   return (
     <section className="bg-gradient-to-b from-gray-100 to-white">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
-        <div className="pt-32 pb-12 md:pt-40 md:pb-20">
+        <div className=" md:pt-20 md:pb-20">
           {/* Page header */}
           <div className="max-w-3xl mx-auto text-center pb-12 md:pb-20">
             <h1 className="h1">Welcome !</h1>
